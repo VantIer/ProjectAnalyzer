@@ -1,0 +1,17 @@
+[project]
+name = "project-analyzer"
+version = "0.1.0"
+description = "A CLI tool for analyzing software projects using LLM"
+authors = [{name = "Developer"}]
+requires-python = ">=3.8"
+dependencies = [
+    "openai>=1.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+project-analyzer = "project_analyzer.main:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

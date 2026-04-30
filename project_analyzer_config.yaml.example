@@ -1,0 +1,60 @@
+model:
+  provider: "openai"
+  api_key: "your-api-key"
+  model_name: "gpt-4"
+  base_url: ""
+
+threading:
+  max_workers: 4
+
+# 提示词配置，{content}将被替换为实际分析的内容
+# 修改提示词，就可以实现不同的分析、过滤、蒸馏效果，可自由发挥
+prompts:
+  file_analysis: |
+    请分析以下文件内容：
+    {content}
+    要求：
+    1. 一句话总结文件功能，不超过500字
+    2. 列出该文件对外暴露的接口（如果有）
+    3. 列出该文件的外部引用（如果有）
+
+  directory_analysis: |
+    请分析以下目录的组件总结：
+    {content}
+    要求：
+    1. 根据功能描述与引用关系，对目录下的项目组件进行总结，简述其核心逻辑，不超过1000字
+    2. 列出该目录对外暴露的接口或外部调用（如果有）
+    3. 列出该目录的外部引用（如果有）
+
+  project_summary: |
+    根据以下功能描述与引用关系，请对整个项目进行总结：
+    {content}
+    要求：
+    简述其核心功能、流程逻辑
+
+# 清理配置
+cleanup:
+  file_analysis_clear: false        # 是否删除文件分析结果 (ana_*.md)
+  directory_analysis_clear: true    # 是否删除目录分析结果 (model_*.md)
+
+# 排除配置，注意claude写的代码很傻，只能匹配一个通配符，然后头尾分别匹配，多通配符是实现不了的
+exclude:
+  directories:
+    - ".git"
+    - "__pycache__"
+    - "node_modules"
+    - ".idea"
+    - ".vscode"
+    - "dist"
+    - "build"
+
+  file_patterns:
+    - "*.pyo"
+    - "*.so"
+    - "*.dll"
+    - "*.exe"
+    - "*.log"
+    - "ana_*.md"
+    - "model_*.md"
+    - "analyse_report.md"
+    - "src_scan_summary.md"
