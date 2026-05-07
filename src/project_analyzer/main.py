@@ -40,7 +40,6 @@ CONFIG_HELP = """
 可用选项:
   --diff        激活增量对比模式（无快照时自动退化为全量分析）
   --diff-init   仅生成快照文件，不执行分析
-  --dry-run     仅显示变化，不执行分析（需配合 --diff）
   --step STEP   指定只执行某个步骤 (2-7)
 """
 
@@ -64,11 +63,6 @@ def parse_args():
         "--diff",
         action="store_true",
         help="激活增量对比模式：检查/生成快照，仅更新变化部分（无快照时自动全量分析）",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="仅显示变化，不执行分析（需配合 --diff 使用）",
     )
     parser.add_argument(
         "--diff-init",
@@ -240,10 +234,6 @@ def run_diff_mode(args, project_path, config, logger):
         if deleted_files:
             cleaned = snapshot.cleanup_deleted_docs(deleted_files)
             logger.info(f"Cleaned up {cleaned} analysis docs for deleted files")
-
-        if args.dry_run:
-            logger.info("--dry-run 模式: 不执行分析")
-            return
 
     # Step 3: Incremental file analysis
     if not args.step or args.step == 3:

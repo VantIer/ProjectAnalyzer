@@ -10,7 +10,6 @@
 - 生成 Markdown 格式的项目总结报告
 - `--diff` 增量模式：基于文件哈希快照，仅分析变化部分
 - `--diff-init` 快照初始化：仅生成快照，不执行分析
-- `--dry-run` 预览模式：仅显示变化，不执行分析
 - `--step` 单步执行：支持从中断处续跑
 - 支持 Windows、Linux、macOS
 
@@ -59,7 +58,10 @@ prompts:
     根据以下功能描述与引用关系，请对整个项目进行总结：
     {content}
     要求：
-    简述其核心功能、流程逻辑
+    1. 详细描述核心功能
+    2. 详细描述流程逻辑
+    3. 根据其流程逻辑，绘制详细流程图
+    4. 详细展示各个文件在流程中的功能与流程关系
 
 # 快照配置（--diff 增量模式使用）
 snapshot:
@@ -126,8 +128,8 @@ project-analyzer /path/to/project --diff-init
 ### 预览变化
 
 ```bash
-# 仅显示变化，不执行分析
-project-analyzer /path/to/project --diff --dry-run
+# 仅检测变化，不执行分析（使用步骤2）
+project-analyzer /path/to/project --diff --step 2
 ```
 
 ### 单步执行
