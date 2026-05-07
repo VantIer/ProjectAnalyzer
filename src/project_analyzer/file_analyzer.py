@@ -26,6 +26,7 @@ class FileAnalyzer:
         self.config = config
         self.logger = logger
         self.max_workers = config.max_workers
+        self.force_overwrite = False  # When True, delete existing analysis before re-analyzing
 
     def _create_client(self) -> OpenAI:
         """Create a new OpenAI client instance."""
@@ -79,8 +80,16 @@ class FileAnalyzer:
         output_path = file_path.parent / f"ana_{file_path.name}.md"
 
         if output_path.exists():
-            self.logger.info(f"跳过已存在的分析结果: {output_path}")
-            return True
+            if self.force_overwrite:
+                # In diff mode, force re-analysis by removing existing result
+                try:
+                    output_path.unlink()
+                    self.logger.debug(f"Removed old analysis for re-analysis: {output_path}")
+                except Exception as e:
+                    self.logger.error(f"Failed to remove old analysis {output_path}: {e}")
+            else:
+                self.logger.info(f"跳过已存在的分析结果: {output_path}")
+                return True
 
         self.logger.info(f"正在分析文件: {file_path}")
 

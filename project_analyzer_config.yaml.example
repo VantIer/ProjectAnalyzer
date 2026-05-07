@@ -37,7 +37,16 @@ cleanup:
   file_analysis_clear: false        # 是否删除文件分析结果 (ana_*.md)
   directory_analysis_clear: true    # 是否删除目录分析结果 (model_*.md)
 
-# 排除配置，注意claude写的代码很傻，只能匹配一个通配符，然后头尾分别匹配，多通配符是实现不了的
+# 快照配置（--diff 增量模式使用）
+snapshot:
+  path: ".project_snapshot.json"    # 快照文件路径
+  hash_algorithm: "md5"             # 哈希算法 (md5/sha256)
+
+# 级联更新配置（--diff 增量模式使用）
+cascade:
+  enabled: true                     # 是否启用级联更新（文件变化时向上级联更新目录分析和项目总结）
+
+# 排除配置，注意代码只能匹配一个通配符，然后头尾分别匹配，多通配符是实现不了的
 exclude:
   directories:
     - ".git"

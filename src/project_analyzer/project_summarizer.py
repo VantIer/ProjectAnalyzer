@@ -135,6 +135,13 @@ class ProjectSummarizer:
                     combined_content += f"\n\n# {tmp_file.stem[9:]}\n\n"  # Remove tmp_model_ prefix
                     combined_content += f.read()
 
+            # Include root directory's own model_*.md if it exists
+            root_model_file = dir_path / f"model_{dir_path.name}.md"
+            if root_model_file.exists():
+                with open(root_model_file, "r", encoding="utf-8") as f:
+                    combined_content += f"\n\n## 根目录分析\n\n"
+                    combined_content += f.read()
+
             prompt_template = self.config.project_summary_prompt
             prompt = prompt_template.replace("{content}", combined_content)
 
@@ -142,7 +149,7 @@ class ProjectSummarizer:
             response = client.chat.completions.create(
                 model=self.config.get("model.model_name", "gpt-4"),
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=4096,
+                max_tokens=16384,
             )
 
             summary = response.choices[0].message.content
@@ -195,7 +202,7 @@ class ProjectSummarizer:
             response = client.chat.completions.create(
                 model=self.config.get("model.model_name", "gpt-4"),
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=4096,
+                max_tokens=16384,
             )
 
             summary = response.choices[0].message.content

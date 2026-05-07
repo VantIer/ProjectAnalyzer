@@ -1,5 +1,6 @@
 """Utility functions for ProjectAnalyzer."""
 
+import hashlib
 import os
 from pathlib import Path
 from typing import List, Tuple
@@ -85,6 +86,18 @@ def get_regular_files(project_path: Path, exclude_config: dict = None) -> List[P
             files.append(file_path)
 
     return files
+
+
+def compute_file_hash(file_path: Path, algorithm: str = "md5") -> str:
+    """Compute hash of file content."""
+    hash_func = hashlib.new(algorithm)
+    try:
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""):
+                hash_func.update(chunk)
+        return hash_func.hexdigest()
+    except Exception:
+        return ""
 
 
 def format_file_size(size_bytes: int) -> str:

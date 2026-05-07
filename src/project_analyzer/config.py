@@ -73,3 +73,19 @@ class Config:
     @property
     def directory_analysis_clear(self) -> bool:
         return self.get("cleanup.directory_analysis_clear", True)
+
+    @property
+    def snapshot_config(self) -> dict:
+        return self._config.get("snapshot", {})
+
+    @property
+    def snapshot_path(self) -> str:
+        return self.snapshot_config.get("path", ".project_snapshot.json")
+
+    @property
+    def hash_algorithm(self) -> str:
+        return self.snapshot_config.get("hash_algorithm", "md5")
+
+    @property
+    def cascade_enabled(self) -> bool:
+        return self.get("cascade.enabled", True)

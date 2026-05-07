@@ -24,6 +24,7 @@ class DirectoryAnalyzer:
         self.config = config
         self.logger = logger
         self.max_workers = config.max_workers
+        self.force_overwrite = False  # When True, delete existing model before re-analyzing
 
     def _create_client(self) -> OpenAI:
         """Create a new OpenAI client instance."""
@@ -50,14 +51,30 @@ class DirectoryAnalyzer:
                 ana_files.append(f)
         return ana_files
 
-    def analyze_directories(self) -> Dict[str, bool]:
+    def analyze_directories(self, affected_dirs: List[Path] = None) -> Dict[str, bool]:
         """
-        Analyze all directories using multi-threading.
+        Analyze directories using multi-threading.
+
+        Args:
+            affected_dirs: If provided, only analyze these directories (incremental mode).
+                          If None, analyze all directories (full mode).
 
         Returns:
             Dict mapping directory path to success status
         """
-        directories = self.get_all_directories()
+        if affected_dirs is not None:
+            # Incremental mode: only analyze affected directories
+            # Only exclude the project root and non-existent directories;
+            # do NOT filter out directories lacking ana_*.md files
+            exclude_dirs_config = self.config.exclude_config
+            exclude_dirs = set(exclude_dirs_config.get("directories", [])) if exclude_dirs_config else set()
+            directories = [
+                d for d in affected_dirs
+                if d != self.project_path and d.is_dir() and d.name not in exclude_dirs
+            ]
+        else:
+            # Full mode: analyze all directories
+            directories = self.get_all_directories()
         total_dirs = len(directories)
         self.logger.info(f"Starting directory analysis: {total_dirs} directories")
 
@@ -90,8 +107,15 @@ class DirectoryAnalyzer:
         output_path = directory / f"model_{directory.name}.md"
 
         if output_path.exists():
-            self.logger.info(f"跳过已存在的分析结果: {output_path}")
-            return True
+            if self.force_overwrite:
+                try:
+                    output_path.unlink()
+                    self.logger.debug(f"Removed old model file for re-analysis: {output_path}")
+                except Exception as e:
+                    self.logger.error(f"Failed to remove old model file {output_path}: {e}")
+            else:
+                self.logger.info(f"跳过已存在的分析结果: {output_path}")
+                return True
 
         self.logger.info(f"正在分析目录: {directory}")
 
