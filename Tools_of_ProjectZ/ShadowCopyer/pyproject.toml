@@ -1,0 +1,16 @@
+[project]
+name = "shadow-copyer"
+version = "0.1.0"
+description = "A CLI tool for mirroring project documentation to a shadow directory"
+authors = [{name = "Developer"}]
+requires-python = ">=3.8"
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+shadow-copyer = "shadow_copyer.main:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

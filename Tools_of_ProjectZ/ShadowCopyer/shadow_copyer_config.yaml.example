@@ -1,0 +1,31 @@
+model:
+  provider: "openai"
+  api_key: "your-api-key"
+
+shadow:
+  root_dir: "./docs"             # 影子文档根目录
+  naming: "{project}_shadow"     # 影子目录命名模板，{project}替换为项目名
+
+sync:
+  incremental: true              # 是否启用增量同步
+  clean_orphan: true             # 是否清理影子目录中的孤立文件
+  verify_hash: true              # 是否通过哈希验证文件一致性
+  state_path: ".shadow_sync_state.json"  # 同步状态文件路径
+
+documents:
+  patterns:                      # 要拷贝的文档模式
+    - "ana_*.md"
+    - "model_*.md"
+    - "analyse_report.md"
+    - "*_scan_summary.md"
+    - "*.log"
+
+exclude:                         # 排除规则
+  directories:
+    - ".git"
+    - "__pycache__"
+    - "node_modules"
+    - ".idea"
+    - ".vscode"
+    - "dist"
+    - "build"
