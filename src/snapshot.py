@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Set, Tuple
 
-from project_analyzer.utils import compute_file_hash, get_regular_files
+from .utils import compute_file_hash, get_regular_files
 
 
 class FileSnapshot:

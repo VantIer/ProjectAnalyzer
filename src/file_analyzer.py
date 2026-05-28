@@ -8,7 +8,7 @@ from typing import List, Dict
 
 from openai import OpenAI
 
-from project_analyzer.utils import safe_read_file
+from .utils import safe_read_file
 
 
 def _strip_markdown(text: str) -> str:

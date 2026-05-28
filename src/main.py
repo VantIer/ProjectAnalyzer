@@ -6,14 +6,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from project_analyzer.config import Config
-from project_analyzer.logger import Logger
-from project_analyzer.scanner import ProjectScanner
-from project_analyzer.file_analyzer import FileAnalyzer
-from project_analyzer.dir_analyzer import DirectoryAnalyzer
-from project_analyzer.project_summarizer import ProjectSummarizer
-from project_analyzer.snapshot import FileSnapshot
-from project_analyzer.utils import get_regular_files
+from .config import Config
+from .logger import Logger
+from .scanner import ProjectScanner
+from .file_analyzer import FileAnalyzer
+from .dir_analyzer import DirectoryAnalyzer
+from .project_summarizer import ProjectSummarizer
+from .snapshot import FileSnapshot
+from .utils import get_regular_files
 
 
 CONFIG_HELP = """

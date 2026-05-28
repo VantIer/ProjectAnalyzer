@@ -1,13 +1,20 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_all
 
 block_cipher = None
 
+# Collect all hidden imports for openai package
+hiddenimports = [
+    'yaml', 'openai', 'httpx', 'anyio', 'sniffio', 'h11', 'idna', 'certifi',
+    'charset_normalizer', 'urllib3', 'requests', 'tqdm', 'distro'
+]
+
 a = Analysis(
-    ['src/project_analyzer/main.py'],
+    ['src/main.py'],
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=['yaml', 'openai', 'httpx', 'anyio', 'sniffio', 'h11', 'idna', 'certifi'],
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

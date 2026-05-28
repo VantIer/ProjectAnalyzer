@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import List, Tuple
 
-from project_analyzer.utils import get_project_files
+from .utils import get_project_files
 
 
 class ProjectScanner:

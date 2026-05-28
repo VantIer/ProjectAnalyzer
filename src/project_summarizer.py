@@ -39,12 +39,15 @@ class ProjectSummarizer:
             self.logger.error(f"Failed to generate project summary: {e}")
             return False
         finally:
-            # Ensure tmp files are always cleaned up, even on error
-            self._cleanup_tmp_files(self.project_path)
+            # Clean up tmp files based on config
+            if self.config.model_analysis_clear:
+                self._cleanup_tmp_files(self.project_path)
 
     def _process_directory(self, dir_path: Path) -> None:
         """Process directory using post-order traversal (children first, then parent)."""
         subdirs = [d for d in dir_path.iterdir() if d.is_dir()]
+
+        self.logger.info(f"Processing directory: {dir_path}, subdirs={[d.name for d in subdirs]}")
 
         # First, recursively process all subdirectories
         for subdir in subdirs:
@@ -56,9 +59,11 @@ class ProjectSummarizer:
 
         # Then, process current directory
         if not subdirs:
+            self.logger.info(f"Leaf directory: {dir_path}")
             # Leaf directory: copy model_*.md to parent's tmp_model_*.md
             self._process_leaf_directory(dir_path)
         else:
+            self.logger.info(f"Non-leaf directory: {dir_path}")
             # Non-leaf directory: generate summary from children and current
             self._process_non_leaf_directory(dir_path)
 
@@ -89,8 +94,15 @@ class ProjectSummarizer:
         processed = set()
         for f in dir_path.iterdir():
             if f.is_file() and f.name.startswith("tmp_model_") and f.name.endswith(".md"):
-                # Extract dirname: tmp_model_SRC.md -> SRC
-                name = f.name[9:-3]  # Remove "tmp_model_" prefix and ".md" suffix
+                # Extract dirname: tmp_model_XXX.md -> XXX
+                # Use stem: "tmp_model_utils.md" -> "tmp_model_utils" -> remove "tmp_model_" prefix
+                stem = f.stem  # "tmp_model_utils"
+                prefix = "tmp_model_"
+                if stem.startswith(prefix):
+                    name = stem[len(prefix):]  # Remove "tmp_model_" prefix
+                else:
+                    name = stem
+                self.logger.debug(f"Found processed subdir: {f.name} -> {name}")
                 processed.add(name)
         return processed
 
@@ -98,11 +110,15 @@ class ProjectSummarizer:
         """Check if all subdirectories have been processed."""
         subdirs = {d.name for d in dir_path.iterdir() if d.is_dir()}
         processed = self._get_processed_subdirs(dir_path)
-        return subdirs == processed
+        result = subdirs == processed
+        self.logger.debug(f"Checking subdirs processed: {dir_path}, subdirs={subdirs}, processed={processed}, result={result}")
+        return result
 
     def _process_non_leaf_directory(self, dir_path: Path) -> None:
         """Non-leaf directory: generate summary from children tmp files and current model."""
+        self.logger.debug(f"Processing non-leaf directory: {dir_path}")
         if dir_path == self.project_path:
+            self.logger.debug(f"Root directory, generating final summary")
             # Root directory: generate final analyse_report.md
             self._generate_root_summary(dir_path)
             return
@@ -112,6 +128,7 @@ class ProjectSummarizer:
             self.logger.debug(f"Not all subdirs processed yet for: {dir_path}")
             return
 
+        self.logger.debug(f"All subdirs processed, generating directory summary: {dir_path}")
         # Generate summary for this directory
         self._generate_directory_summary(dir_path)
 
@@ -132,7 +149,7 @@ class ProjectSummarizer:
             combined_content = ""
             for tmp_file in sorted(tmp_files):
                 with open(tmp_file, "r", encoding="utf-8") as f:
-                    combined_content += f"\n\n# {tmp_file.stem[9:]}\n\n"  # Remove tmp_model_ prefix
+                    combined_content += f"\n\n# {tmp_file.stem[10:]}\n\n"  # Remove tmp_model_ prefix
                     combined_content += f.read()
 
             # Include root directory's own model_*.md if it exists
@@ -174,19 +191,26 @@ class ProjectSummarizer:
 
     def _generate_directory_summary(self, dir_path: Path) -> bool:
         """Generate summary for a non-leaf directory and save to parent's tmp file."""
+        self.logger.debug(f"Generating directory summary: {dir_path}")
         client = self._create_client()
 
         try:
             # Get all tmp_model_*.md files (from subdirectories)
             tmp_files = list(dir_path.glob("tmp_model_*.md"))
             model_file = dir_path / f"model_{dir_path.name}.md"
+            self.logger.debug(f"tmp_files={tmp_files}, model_file exists={model_file.exists()}")
+
+            # If directory has no content to aggregate, skip
+            if not tmp_files and not model_file.exists():
+                self.logger.debug(f"Directory {dir_path.name} has no content to aggregate, skipping")
+                return True
 
             combined_content = ""
 
             # Add subdirectory summaries
             for tmp_file in sorted(tmp_files):
                 with open(tmp_file, "r", encoding="utf-8") as f:
-                    combined_content += f"\n\n## 子目录: {tmp_file.stem[9:]}\n\n"
+                    combined_content += f"\n\n## 子目录: {tmp_file.stem[10:]}\n\n"
                     combined_content += f.read()
 
             # Add current directory's own analysis
@@ -195,7 +219,9 @@ class ProjectSummarizer:
                     combined_content += f"\n\n## 当前目录分析\n\n"
                     combined_content += f.read()
 
-            prompt_template = self.config.project_summary_prompt
+            self.logger.debug(f"Combined content length: {len(combined_content)}")
+
+            prompt_template = self.config.model_analysis_prompt
             prompt = prompt_template.replace("{content}", combined_content)
 
             self.logger.info(f"Generating summary for directory: {dir_path.name}")
@@ -206,11 +232,13 @@ class ProjectSummarizer:
             )
 
             summary = response.choices[0].message.content
+            self.logger.debug(f"LLM response summary length: {len(summary) if summary else 0}")
             clean_summary = _strip_markdown(summary)
 
             # Save to parent's tmp_model_*.md
             parent = dir_path.parent
             parent_tmp_file = parent / f"tmp_model_{dir_path.name}.md"
+            self.logger.debug(f"Writing to parent tmp file: {parent_tmp_file}")
             with open(parent_tmp_file, "w", encoding="utf-8") as f:
                 f.write(f"{dir_path.name}\n\n")
                 f.write(clean_summary)
@@ -220,10 +248,17 @@ class ProjectSummarizer:
 
         except Exception as e:
             self.logger.error(f"Failed to generate directory summary for {dir_path}: {e}")
-            return False
-        finally:
-            # Always cleanup tmp files in current directory, regardless of success or failure
-            self._cleanup_tmp_files(dir_path)
+            # Ensure parent directory can still continue processing
+            # Create placeholder file to indicate this directory was processed
+            if dir_path.parent != dir_path:  # not root directory
+                parent_tmp_file = dir_path.parent / f"tmp_model_{dir_path.name}.md"
+                try:
+                    self.logger.debug(f"Creating placeholder at: {parent_tmp_file}")
+                    with open(parent_tmp_file, "w", encoding="utf-8") as f:
+                        f.write(f"{dir_path.name}\n\n[Analysis unavailable]\n")
+                except Exception as ex:
+                    self.logger.error(f"Failed to create placeholder: {ex}")
+            return False  # Return False but placeholder ensures parent continues
 
     def _cleanup_tmp_files(self, dir_path: Path) -> None:
         """Clean up all tmp_* files recursively in the specified directory tree."""

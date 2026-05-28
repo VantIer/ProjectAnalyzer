@@ -63,6 +63,10 @@ class Config:
         return self.prompts_config.get("project_summary", "")
 
     @property
+    def model_analysis_prompt(self) -> str:
+        return self.prompts_config.get("model_analysis", "")
+
+    @property
     def exclude_config(self) -> dict:
         return self._config.get("exclude", {})
 
@@ -73,6 +77,10 @@ class Config:
     @property
     def directory_analysis_clear(self) -> bool:
         return self.get("cleanup.directory_analysis_clear", True)
+
+    @property
+    def model_analysis_clear(self) -> bool:
+        return self.get("cleanup.model_analysis_clear", True)
 
     @property
     def snapshot_config(self) -> dict:

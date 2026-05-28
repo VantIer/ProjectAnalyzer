@@ -123,27 +123,38 @@ class DirectoryAnalyzer:
 
         try:
             ana_files = self.get_ana_files_for_dir(directory)
-            if not ana_files:
-                self.logger.debug(f"No ana files in {directory}, skipping")
-                return True
+            subdirs = [d for d in directory.iterdir() if d.is_dir()]
 
-            combined_content = ""
-            for ana_file in ana_files:
-                with open(ana_file, "r", encoding="utf-8") as f:
-                    combined_content += f"\n\n# {ana_file.name}\n\n"
-                    combined_content += f.read()
+            if not ana_files and not subdirs:
+                # Directory is empty: no files and no subdirectories
+                self.logger.debug(f"Empty directory {directory}, generating placeholder")
+                content = "# " + directory.name + "\n\n**Directory:** " + str(directory) + "\n\n该目录为空"
+            elif not ana_files and subdirs:
+                # Directory has only subdirectories, no files: list subdirectories
+                self.logger.debug(f"Directory {directory} has only subdirectories")
+                content = "# " + directory.name + "\n\n**Directory:** " + str(directory) + "\n\n## 子目录列表\n\n"
+                for subdir in sorted(subdirs):
+                    content += "- " + subdir.name + "\n"
+            else:
+                # Normal case: combine all ana_*.md files
+                combined_content = ""
+                for ana_file in ana_files:
+                    with open(ana_file, "r", encoding="utf-8") as f:
+                        combined_content += f"\n\n# {ana_file.name}\n\n"
+                        combined_content += f.read()
 
-            prompt_template = self.config.directory_analysis_prompt
-            prompt = prompt_template.replace("{content}", combined_content)
+                prompt_template = self.config.directory_analysis_prompt
+                prompt = prompt_template.replace("{content}", combined_content)
 
-            response = client.chat.completions.create(
-                model=self.config.get("model.model_name", "gpt-4"),
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=4096,
-            )
+                response = client.chat.completions.create(
+                    model=self.config.get("model.model_name", "gpt-4"),
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=4096,
+                )
 
-            analysis = response.choices[0].message.content
-            clean_analysis = _strip_markdown(analysis)
+                content = response.choices[0].message.content
+
+            clean_analysis = _strip_markdown(content)
 
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(f"# {directory.name}\n\n")

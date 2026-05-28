@@ -47,21 +47,30 @@ prompts:
     3. 列出该文件的外部引用（如果有）
 
   directory_analysis: |
-    请分析以下目录的组件总结：
+    请分析以下目录的代码功能总结内容：
     {content}
     要求：
-    1. 根据功能描述与引用关系，对目录下的项目组件进行总结，简述其核心逻辑，不超过1000字
-    2. 列出该目录对外暴露的接口或外部调用（如果有）
-    3. 列出该目录的外部引用（如果有）
+    1. 根据功能描述与引用关系，对目录下的代码功能进行总结，简述其核心逻辑，不超过1000字
+    2. 列出该目录中代码对外暴露的接口或外部调用（如果有）
+    3. 列出该目录中代码的外部引用（如果有）
+
+  model_analysis: |
+    根据以下各个子模块功能分析内容，请对本模块进行功能分析：
+    {content}
+    要求：
+    1. 根据功能描述与引用关系，对本模块功能进行总结，简述其核心逻辑，并描述该目录内各组件之间的关系，不超过1000字
+    2. 列出本模块对外暴露的接口或外部调用（如果有）
+    3. 列出本模块的外部引用（如果有）
 
   project_summary: |
     根据以下功能描述与引用关系，请对整个项目进行总结：
     {content}
     要求：
     1. 详细描述核心功能
-    2. 详细描述流程逻辑
-    3. 根据其流程逻辑，绘制详细流程图
-    4. 详细展示各个文件在流程中的功能与流程关系
+    2. 详述该目录内各组件之间的关系
+    3. 详细描述流程逻辑
+    4. 根据其流程逻辑，绘制详细流程图
+    5. 详细展示各个文件、模块在流程中的功能与流程关系
 
 # 快照配置（--diff 增量模式使用）
 snapshot:
@@ -96,8 +105,9 @@ exclude:
 
 # 清理配置
 cleanup:
-  file_analysis_clear: true       # 是否删除文件分析结果 (ana_*.md)
-  directory_analysis_clear: true  # 是否删除目录分析结果 (model_*.md)
+  file_analysis_clear: false        # 是否删除文件分析结果 (ana_*.md)
+  directory_analysis_clear: true    # 是否删除目录分析结果 (model_*.md)
+  model_analysis_clear: true        # 是否删除模块汇总文件 (tmp_*.md)
 ```
 
 ## 使用方法
@@ -105,31 +115,31 @@ cleanup:
 ### 全量模式（默认）
 
 ```bash
-project-analyzer /path/to/project --config /path/to/config.yaml
+python -m src.main /path/to/project --config /path/to/config.yaml
 ```
 
 ### 增量模式
 
 ```bash
 # 首次使用增量模式前，先用 --diff-init 生成快照
-project-analyzer /path/to/project --diff-init
+python -m src.main /path/to/project --diff-init
 
 # 或者先运行全量分析（步骤6会自动保存快照），之后使用增量模式
-project-analyzer /path/to/project --diff
+python -m src.main /path/to/project --diff
 ```
 
 ### 快照初始化
 
 ```bash
 # 仅扫描文件并生成快照，不执行任何分析
-project-analyzer /path/to/project --diff-init
+python -m src.main /path/to/project --diff-init
 ```
 
 ### 预览变化
 
 ```bash
 # 仅检测变化，不执行分析（使用步骤2）
-project-analyzer /path/to/project --diff --step 2
+python -m src.main /path/to/project --diff --step 2
 ```
 
 ### 单步执行
@@ -137,49 +147,48 @@ project-analyzer /path/to/project --diff --step 2
 支持中断续跑，已完成的步骤会自动跳过（全量模式下已有 `ana_*.md` / `model_*.md` 不会被覆盖）：
 
 ```bash
-project-analyzer /path/to/project --step 2  # 仅扫描项目结构
-project-analyzer /path/to/project --step 3  # 仅执行文件分析
-project-analyzer /path/to/project --step 4  # 仅执行目录分析
-project-analyzer /path/to/project --step 5  # 仅生成项目总结
-project-analyzer /path/to/project --step 6  # 仅保存快照
-project-analyzer /path/to/project --step 7  # 仅清理临时文件
+python -m src.main /path/to/project --step 2  # 仅扫描项目结构
+python -m src.main /path/to/project --step 3  # 仅执行文件分析
+python -m src.main /path/to/project --step 4  # 仅执行目录分析
+python -m src.main /path/to/project --step 5  # 仅生成项目总结
+python -m src.main /path/to/project --step 6  # 仅保存快照
+python -m src.main /path/to/project --step 7  # 仅清理临时文件
 ```
 
 增量模式也支持单步执行（会自动检测变化）：
 
 ```bash
-project-analyzer /path/to/project --diff --step 3  # 增量文件分析
-project-analyzer /path/to/project --diff --step 4  # 增量目录分析
+python -m src.main /path/to/project --diff --step 3  # 增量文件分析
+python -m src.main /path/to/project --diff --step 4  # 增量目录分析
 ```
 
 ## 输出文件
 
-| 文件 | 内容 | 位置 |
-|------|------|------|
-| `{项目名}_scan_summary.md` | 项目结构扫描总结（步骤2） | 项目根目录 |
-| `ana_{filename}.md` | 单个文件分析结果（步骤3） | 与源文件同目录 |
-| `model_{dirname}.md` | 目录分析结果（步骤4） | 对应目录下 |
-| `tmp_model_{dirname}.md` | 临时汇总文件（步骤5层级汇总，运行后清理） | 对应目录下 |
-| `analyse_report.md` | 最终项目总结报告（步骤5） | 项目根目录 |
-| `.project_snapshot.json` | 文件状态快照（步骤6） | 项目根目录 |
-| `{项目名}.log` | 详细运行日志 | 项目根目录 |
+| 文件                       | 内容              | 位置      | 清理        |
+| ------------------------ | --------------- | ------- | --------- |
+| `{项目名}_scan_summary.md`  | 项目结构扫描总结（步骤2）   | 项目根目录   | 否         |
+| `ana_{filename}.md`      | 单个文件分析结果（步骤3）   | 与源文件同目录 | 根据配置      |
+| `model_{dirname}.md`     | 目录分析结果（步骤4）     | 对应目录下   | 根据配置      |
+| `tmp_model_{dirname}.md` | 临时汇总文件（步骤5层级汇总） | 对应目录下   | 是（步骤5结束时） |
+| `analyse_report.md`      | 最终项目总结报告（步骤5）   | 项目根目录   | 否         |
+| `.project_snapshot.json` | 文件状态快照（步骤6）     | 项目根目录   | 否         |
+| `{项目名}.log`              | 详细运行日志          | 项目根目录   | 否         |
 
 ## 项目架构
 
 ```
 project-analyzer/
 ├── src/
-│   └── project_analyzer/
-│       ├── __init__.py           # 包初始化，版本定义
-│       ├── main.py               # CLI入口，全量/增量/快照初始化流程编排
-│       ├── config.py             # 配置管理（含snapshot/cascade配置）
-│       ├── logger.py             # 日志管理
-│       ├── scanner.py            # 项目结构扫描
-│       ├── file_analyzer.py      # 文件分析（多线程，支持force_overwrite）
-│       ├── dir_analyzer.py       # 目录分析（多线程，支持增量模式）
-│       ├── project_summarizer.py # 项目总结生成（层级汇总）
-│       ├── snapshot.py           # 快照管理（变化检测、受影响目录计算）
-│       └── utils.py              # 工具函数（含哈希计算）
+│   ├── __init__.py           # 包初始化，版本定义
+│   ├── main.py               # CLI入口，全量/增量/快照初始化流程编排
+│   ├── config.py             # 配置管理（含snapshot/cascade配置）
+│   ├── logger.py             # 日志管理
+│   ├── scanner.py            # 项目结构扫描
+│   ├── file_analyzer.py      # 文件分析（多线程，支持force_overwrite）
+│   ├── dir_analyzer.py       # 目录分析（多线程，支持增量模式）
+│   ├── project_summarizer.py # 项目总结生成（层级汇总）
+│   ├── snapshot.py           # 快照管理（变化检测、受影响目录计算）
+│   └── utils.py              # 工具函数（含哈希计算）
 ├── tests/
 │   └── test_project_analyzer.py  # 单元测试
 ├── pyproject.toml                # 项目配置
@@ -191,11 +200,11 @@ project-analyzer/
 
 ### 模式总览
 
-| 模式 | 命令 | 说明 |
-|------|------|------|
-| 全量模式 | `project-analyzer <path>` | 分析所有文件，跳过已有结果（支持中断续跑） |
-| 增量模式 | `project-analyzer <path> --diff` | 基于快照对比，仅分析变化部分，强制覆盖 |
-| 快照初始化 | `project-analyzer <path> --diff-init` | 仅生成快照，不执行分析 |
+| 模式    | 命令                                                                | 说明                    |
+| ----- | ----------------------------------------------------------------- | --------------------- |
+| 全量模式  | `python -m src.main <path>`                                       | 分析所有文件，跳过已有结果（支持中断续跑） |
+| 增量模式  | `python -m src.main <path> --diff`                                | 基于快照对比，仅分析变化部分，强制覆盖   |
+| 快照初始化 | `project-analyzer <path> --diff-init` | 仅生成快照，不执行分析           |
 
 ### 全量模式（7 个步骤）
 
@@ -256,10 +265,15 @@ project-analyzer/
 1. 从项目根目录开始递归
 2. 对每个目录（后序：子目录先处理）：
    a. 叶子目录：复制 model_*.md → 父目录/tmp_model_*.md
-   b. 非叶子非根目录：合并子目录tmp文件 + 自身model_*.md → LLM → 父目录/tmp_model_*.md
-   c. 根目录：合并子目录tmp文件 + 自身model_*.md（如有） → LLM → analyse_report.md
-3. 清理所有 tmp_model_* 临时文件
+   b. 非叶子非根目录：合并子目录tmp文件 + 自身model_*.md → model_analysis提示词 → LLM → 父目录/tmp_model_*.md
+   c. 根目录：合并子目录tmp文件 + 自身model_*.md（如有） → project_summary提示词 → LLM → analyse_report.md
+3. 清理所有 tmp_model_* 临时文件（根据 model_analysis_clear 配置）
 ```
+
+**提示词区分：**
+
+- `model_analysis`：用于非根目录的层级递归汇总（简洁概括）
+- `project_summary`：用于根目录最终报告生成（详细全面）
 
 **层级汇总示意图：**
 
@@ -298,21 +312,22 @@ project-analyzer/
 
 ```
 根据配置决定是否删除：
-- 所有 ana_*.md 文件
-- 所有 model_*.md 文件
+- 所有 ana_*.md 文件（file_analysis_clear）
+- 所有 model_*.md 文件（directory_analysis_clear）
+- 所有 tmp_*.md 文件（model_analysis_clear）
 注：analyse_report.md、.project_snapshot.json 和日志文件始终保留
 ```
 
 ### 增量模式（--diff）
 
-| 步骤 | 内容 | 与全量模式的区别 |
-|------|------|------------------|
-| 2 | 检测文件变化 | 对比快照哈希，识别新增/修改/删除 |
-| 3 | 增量文件分析 | 仅分析变化文件，`force_overwrite=True` |
-| 4 | 增量目录分析 | 仅分析受影响目录（变化文件祖先目录），`force_overwrite=True` |
-| 5 | 更新项目总结 | 逻辑与全量相同（完整后序遍历） |
-| 6 | 保存快照 | 保存更新后的快照 |
-| 7 | 清理临时文件 | 同全量模式 |
+| 步骤  | 内容     | 与全量模式的区别                                  |
+| --- | ------ | ----------------------------------------- |
+| 2   | 检测文件变化 | 对比快照哈希，识别新增/修改/删除                         |
+| 3   | 增量文件分析 | 仅分析变化文件，`force_overwrite=True`            |
+| 4   | 增量目录分析 | 仅分析受影响目录（变化文件祖先目录），`force_overwrite=True` |
+| 5   | 更新项目总结 | 逻辑与全量相同（完整后序遍历）                           |
+| 6   | 保存快照   | 保存更新后的快照                                  |
+| 7   | 清理临时文件 | 同全量模式                                     |
 
 **增量模式关键机制：**
 
@@ -364,13 +379,13 @@ project-analyzer/
 
 ## 错误处理
 
-| 场景 | 处理方式 |
-|------|----------|
-| 配置文件不存在 | 输出错误，程序退出 |
-| 项目路径无效 | 输出错误，程序退出 |
+| 场景       | 处理方式                 |
+| -------- | -------------------- |
+| 配置文件不存在  | 输出错误，程序退出            |
+| 项目路径无效   | 输出错误，程序退出            |
 | API 调用失败 | 记录错误，保存失败标记，继续处理其他文件 |
-| 文件读取失败 | 跳过文件，保存失败标记 |
-| 汇总失败 | 记录错误，清理临时文件，程序退出 |
+| 文件读取失败   | 跳过文件，保存失败标记          |
+| 汇总失败     | 记录错误，清理临时文件，程序退出     |
 
 ## 打包
 
